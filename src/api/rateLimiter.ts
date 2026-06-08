@@ -5,7 +5,7 @@ type QueueTask<T> = {
   signal?: AbortSignal;
 };
 
-const MIN_INTERVAL_MS = 600;
+const MIN_INTERVAL_MS = 120;
 const RATE_LIMIT_COOLDOWN_MS = 5000;
 
 let lastRequestAt = 0;

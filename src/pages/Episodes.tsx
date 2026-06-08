@@ -13,6 +13,7 @@ interface EpisodeInfo {
 
 export default function Episodes() {
   const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [info, setInfo] = useState<EpisodeInfo>({
     air_date: "",
     episode: "",
@@ -27,22 +28,28 @@ export default function Episodes() {
     const controller = new AbortController();
 
     (async function () {
+      setLoading(true);
+
       try {
         const data = await fetchApi<EpisodeInfo & { characters: string[] }>(
           `/episode/${id}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         setInfo(data);
 
         const charData = await Promise.all(
           data.characters.map((url: string) =>
-            fetchApi(url, { signal: controller.signal })
-          )
+            fetchApi(url, { signal: controller.signal }),
+          ),
         );
         setResults(charData);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         console.error("Error fetching episode details:", err);
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     })();
 
@@ -58,7 +65,7 @@ export default function Episodes() {
         </span>
         <h1 className="text-3xl sm:text-5xl font-black text-theme tracking-tight mb-3">
           Episode Name:{" "}
-          <span className="bg-gradient-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
+          <span className="bg-linear-to-r from-indigo-400 to-emerald-400 bg-clip-text text-transparent">
             {name === "" ? "Unknown" : name}
           </span>
         </h1>
@@ -72,16 +79,27 @@ export default function Episodes() {
         {/* Left Column: Selector */}
         <div className="lg:col-span-1">
           <div className="theme-panel p-5 rounded-2xl sticky top-28 space-y-4">
-            <h2 className="text-lg font-bold text-theme-secondary">Pick Episode</h2>
+            <h2 className="text-lg font-bold text-theme-secondary">
+              Pick Episode
+            </h2>
             <InputGroup name="Episode" changeID={setID} total={51} />
           </div>
         </div>
 
         {/* Right Column: Cards */}
         <div className="lg:col-span-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            <Card page="/episodes/" results={results} />
-          </div>
+          {loading ? (
+            <div className="flex min-h-80 flex-col items-center justify-center gap-4 rounded-2xl border border-theme bg-theme-surface/60 p-8 text-theme-muted">
+              <div className="loader scale-75" aria-hidden="true" />
+              <span className="text-sm font-semibold uppercase tracking-[0.2em] text-theme-faint">
+                Loading episode cards…
+              </span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              <Card page="/episodes/" results={results} />
+            </div>
+          )}
         </div>
       </div>
     </div>

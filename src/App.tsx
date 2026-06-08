@@ -7,7 +7,7 @@ import CardDetails from "./pages/CardDetails";
 
 export default function App() {
   return (
-    <Router>
+    <Router basename={import.meta.env.BASE_URL}>
       <div className="min-h-screen bg-theme-app text-theme selection:bg-indigo-500 selection:text-white transition-colors duration-300">
         <div className="fixed top-0 left-1/4 w-[500px] h-[500px] glow-indigo rounded-full blur-[120px] pointer-events-none -z-10" />
         <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] glow-emerald rounded-full blur-[120px] pointer-events-none -z-10" />

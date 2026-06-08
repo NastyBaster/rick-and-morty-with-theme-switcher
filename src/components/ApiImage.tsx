@@ -11,6 +11,7 @@ interface ApiImageProps {
 export default function ApiImage({ src, alt, className }: ApiImageProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [displaySrc, setDisplaySrc] = useState(IMAGE_PLACEHOLDER);
+  const [isLoading, setIsLoading] = useState(true);
   const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -19,6 +20,7 @@ export default function ApiImage({ src, alt, className }: ApiImageProps) {
 
     const controller = new AbortController();
     let visible = false;
+    setIsLoading(true);
 
     const loadImage = async () => {
       try {
@@ -33,9 +35,11 @@ export default function ApiImage({ src, alt, className }: ApiImageProps) {
         const objectUrl = URL.createObjectURL(blob);
         objectUrlRef.current = objectUrl;
         setDisplaySrc(objectUrl);
+        setIsLoading(false);
       } catch (err) {
         if (err instanceof DOMException && err.name === "AbortError") return;
         setDisplaySrc(IMAGE_PLACEHOLDER);
+        setIsLoading(false);
       }
     };
 
@@ -47,7 +51,7 @@ export default function ApiImage({ src, alt, className }: ApiImageProps) {
           void loadImage();
         }
       },
-      { rootMargin: "80px" }
+      { rootMargin: "80px" },
     );
 
     observer.observe(container);
@@ -63,13 +67,26 @@ export default function ApiImage({ src, alt, className }: ApiImageProps) {
   }, [src]);
 
   return (
-    <div ref={containerRef} className="w-full h-full">
+    <div
+      ref={containerRef}
+      className="relative w-full h-full overflow-hidden bg-(--card-image-bg)"
+    >
       <img
         src={displaySrc}
         alt={alt}
         className={className}
         decoding="async"
+        onLoad={() => setIsLoading(false)}
+        onError={() => {
+          setDisplaySrc(IMAGE_PLACEHOLDER);
+          setIsLoading(false);
+        }}
       />
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-(--card-image-bg)/80">
+          <div className="loader scale-50" aria-hidden="true" />
+        </div>
+      )}
     </div>
   );
 }

@@ -21,7 +21,9 @@ interface CharacterDetail {
 export default function CardDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [fetchedData, updateFetchedData] = useState<CharacterDetail | null>(null);
+  const [fetchedData, updateFetchedData] = useState<CharacterDetail | null>(
+    null,
+  );
 
   useEffect(() => {
     if (!id) return;
@@ -45,14 +47,17 @@ export default function CardDetails() {
 
   if (!fetchedData) {
     return (
-      <div className="flex flex-col items-center justify-center p-20 text-theme-muted">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <span className="text-lg font-semibold text-theme-secondary">Loading Character Profile...</span>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-5 p-10 text-theme-muted">
+        <div className="loader scale-75" aria-hidden="true" />
+        <span className="text-lg font-semibold text-theme-secondary">
+          Loading Character Profile…
+        </span>
       </div>
     );
   }
 
-  const { name, location, origin, gender, image, status, species } = fetchedData;
+  const { name, location, origin, gender, image, status, species } =
+    fetchedData;
 
   // Determine status color
   let badgeColor = "bg-slate-500/20 text-slate-400 border-slate-500/30";
@@ -77,13 +82,16 @@ export default function CardDetails() {
 
       {/* Profile Card */}
       <div className="glass-panel rounded-3xl overflow-hidden border border-theme-strong shadow-2xl grid grid-cols-1 md:grid-cols-12">
-        <div className="md:col-span-5 relative aspect-square md:aspect-auto" style={{ backgroundColor: "var(--card-image-bg)" }}>
+        <div
+          className="md:col-span-5 relative aspect-square md:aspect-auto"
+          style={{ backgroundColor: "var(--card-image-bg)" }}
+        >
           <ApiImage
             src={image}
             alt={name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-slate-950/80 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-t md:bg-linear-to-r from-slate-950/80 via-transparent to-transparent" />
         </div>
 
         {/* Profile Details Column */}
@@ -91,8 +99,12 @@ export default function CardDetails() {
           <div>
             {/* Header info */}
             <div className="flex flex-wrap items-center gap-3 mb-4">
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${badgeDot} animate-pulse`} />
+              <span
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${badgeColor}`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${badgeDot} animate-pulse`}
+                />
                 {status}
               </span>
               <span className="text-xs uppercase bg-theme-surface-muted text-theme-muted border border-theme px-2.5 py-1 rounded-full font-semibold">
@@ -112,8 +124,12 @@ export default function CardDetails() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">Gender</span>
-                  <span className="text-base text-theme-secondary font-medium capitalize">{gender}</span>
+                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">
+                    Gender
+                  </span>
+                  <span className="text-base text-theme-secondary font-medium capitalize">
+                    {gender}
+                  </span>
                 </div>
               </div>
 
@@ -123,8 +139,12 @@ export default function CardDetails() {
                   <Info className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">Species</span>
-                  <span className="text-base text-theme-secondary font-medium">{species}</span>
+                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">
+                    Species
+                  </span>
+                  <span className="text-base text-theme-secondary font-medium">
+                    {species}
+                  </span>
                 </div>
               </div>
 
@@ -134,8 +154,12 @@ export default function CardDetails() {
                   <Compass className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">Last Known Location</span>
-                  <span className="text-base text-theme-secondary font-medium">{location?.name || "Unknown"}</span>
+                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">
+                    Last Known Location
+                  </span>
+                  <span className="text-base text-theme-secondary font-medium">
+                    {location?.name || "Unknown"}
+                  </span>
                 </div>
               </div>
 
@@ -145,8 +169,12 @@ export default function CardDetails() {
                   <Globe className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">Origin Planet</span>
-                  <span className="text-base text-theme-secondary font-medium">{origin?.name || "Unknown"}</span>
+                  <span className="text-xs text-theme-faint font-semibold uppercase tracking-wider block">
+                    Origin Planet
+                  </span>
+                  <span className="text-base text-theme-secondary font-medium">
+                    {origin?.name || "Unknown"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -155,7 +183,9 @@ export default function CardDetails() {
           <div className="mt-10 pt-6 border-t border-theme text-theme-faint text-xs flex justify-between items-center">
             <span>Character ID: #{id}</span>
             <span className="flex items-center gap-1">
-              Made with <Heart className="w-3 h-3 text-rose-500 animate-pulse fill-rose-500" /> for Multiverse
+              Made with{" "}
+              <Heart className="w-3 h-3 text-rose-500 animate-pulse fill-rose-500" />{" "}
+              for Multiverse
             </span>
           </div>
         </div>

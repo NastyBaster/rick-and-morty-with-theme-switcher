@@ -1,6 +1,6 @@
 type QueueTask<T> = {
   run: () => Promise<T>;
-  resolve: (value: T) => void;
+  resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason: unknown) => void;
   signal?: AbortSignal;
 };
@@ -24,7 +24,10 @@ async function waitForSlot(signal?: AbortSignal): Promise<void> {
     }
 
     const now = Date.now();
-    const nextSlot = Math.max(lastRequestAt + MIN_INTERVAL_MS, rateLimitedUntil);
+    const nextSlot = Math.max(
+      lastRequestAt + MIN_INTERVAL_MS,
+      rateLimitedUntil,
+    );
     const delay = nextSlot - now;
 
     if (delay <= 0) return;
@@ -37,7 +40,7 @@ async function waitForSlot(signal?: AbortSignal): Promise<void> {
           clearTimeout(timer);
           reject(new DOMException("Aborted", "AbortError"));
         },
-        { once: true }
+        { once: true },
       );
     });
   }
@@ -81,14 +84,14 @@ export function getRateLimitCooldownMs(): number {
 
 export function enqueueRequest<T>(
   run: () => Promise<T>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<T> {
   if (isAborted(signal)) {
     return Promise.reject(new DOMException("Aborted", "AbortError"));
   }
 
   return new Promise<T>((resolve, reject) => {
-    queue.push({ run, resolve, reject, signal });
+    queue.push({ run, resolve, reject, signal } as QueueTask<unknown>);
     void processQueue();
   });
 }

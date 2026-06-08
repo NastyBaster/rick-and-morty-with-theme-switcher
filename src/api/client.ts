@@ -31,7 +31,7 @@ export class RateLimitError extends Error {
 
 export async function fetchApi<T>(
   path: string,
-  options: RequestInit & { skipCache?: boolean } = {}
+  options: RequestInit & { skipCache?: boolean } = {},
 ): Promise<T> {
   const { skipCache = false, signal, ...fetchOptions } = options;
   const url = resolveUrl(path);
@@ -52,7 +52,7 @@ export async function fetchApi<T>(
           clearTimeout(timer);
           reject(new DOMException("Aborted", "AbortError"));
         },
-        { once: true }
+        { once: true },
       );
     });
   }
@@ -83,12 +83,12 @@ export async function fetchApi<T>(
     const data = (await res.json()) as T;
     if (cacheKey) setCached(cacheKey, data);
     return data;
-  }, signal);
+  }, signal || undefined);
 }
 
 export async function fetchImageBlob(
   imageUrl: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<Blob> {
   const cached = getCachedImage(imageUrl);
   if (cached) return cached;
@@ -103,7 +103,7 @@ export async function fetchImageBlob(
           clearTimeout(timer);
           reject(new DOMException("Aborted", "AbortError"));
         },
-        { once: true }
+        { once: true },
       );
     });
   }
@@ -132,5 +132,5 @@ export async function fetchImageBlob(
 
     setCachedImage(imageUrl, blob);
     return blob;
-  }, signal);
+  }, signal || undefined);
 }

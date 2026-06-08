@@ -14,6 +14,9 @@ interface EpisodeInfo {
 export default function Episodes() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [episodeOptions, setEpisodeOptions] = useState<
+    { value: number; label: string }[]
+  >([]);
   const [info, setInfo] = useState<EpisodeInfo>({
     air_date: "",
     episode: "",
@@ -23,6 +26,43 @@ export default function Episodes() {
   const [id, setID] = useState<number>(1);
 
   const { air_date, name } = info;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async function () {
+      try {
+        const allEpisodes = [];
+        let page = 1;
+
+        while (true) {
+          const data = await fetchApi<{
+            info?: { next?: string | null };
+            results?: Array<{ id: number; name: string }>;
+          }>(`/episode?page=${page}`);
+
+          allEpisodes.push(...(data.results ?? []));
+          if (!data.info?.next) break;
+          page += 1;
+        }
+
+        if (!isMounted) return;
+
+        setEpisodeOptions(
+          allEpisodes.map((item) => ({
+            value: item.id,
+            label: item.name,
+          })),
+        );
+      } catch (err) {
+        console.error("Error fetching episode list:", err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,7 +122,12 @@ export default function Episodes() {
             <h2 className="text-lg font-bold text-theme-secondary">
               Pick Episode
             </h2>
-            <InputGroup name="Episode" changeID={setID} total={51} />
+            <InputGroup
+              name="Episode"
+              changeID={setID}
+              total={51}
+              options={episodeOptions}
+            />
           </div>
         </div>
 

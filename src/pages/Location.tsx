@@ -14,6 +14,9 @@ interface LocationInfo {
 export default function Location() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locationOptions, setLocationOptions] = useState<
+    { value: number; label: string }[]
+  >([]);
   const [info, setInfo] = useState<LocationInfo>({
     name: "",
     type: "",
@@ -23,6 +26,43 @@ export default function Location() {
   const [number, setNumber] = useState<number>(1);
 
   const { name, type, dimension } = info;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    (async function () {
+      try {
+        const allLocations = [];
+        let page = 1;
+
+        while (true) {
+          const data = await fetchApi<{
+            info?: { next?: string | null };
+            results?: Array<{ id: number; name: string }>;
+          }>(`/location?page=${page}`);
+
+          allLocations.push(...(data.results ?? []));
+          if (!data.info?.next) break;
+          page += 1;
+        }
+
+        if (!isMounted) return;
+
+        setLocationOptions(
+          allLocations.map((item) => ({
+            value: item.id,
+            label: item.name,
+          })),
+        );
+      } catch (err) {
+        console.error("Error fetching location list:", err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -90,7 +130,12 @@ export default function Location() {
             <h2 className="text-lg font-bold text-theme-secondary">
               Pick Location
             </h2>
-            <InputGroup name="Location" changeID={setNumber} total={126} />
+            <InputGroup
+              name="Location"
+              changeID={setNumber}
+              total={126}
+              options={locationOptions}
+            />
           </div>
         </div>
 

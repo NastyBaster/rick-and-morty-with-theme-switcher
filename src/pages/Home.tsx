@@ -4,60 +4,17 @@ import Card from "../components/Card";
 import Filter from "../components/Filter";
 import ReactPaginate from "react-paginate";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { fetchApi, RateLimitError } from "../api/client";
+import { getCharacters, type CharacterResponse } from "../api/characters";
+import { isAbortError, RateLimitError } from "../api/errors";
+import { getRateLimitCooldownMs } from "../api/rateLimiter";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 
-// Fix for ReactPaginate default export issue in CJS/ESM interop
 const ReactPaginateComponent =
   (ReactPaginate as unknown as { default: typeof ReactPaginate }).default ||
   ReactPaginate;
 
-interface CharacterResponse {
-  info?: {
-    count?: number;
-    pages?: number;
-    next?: string | null;
-    prev?: string | null;
-  };
-  // Strongly-typed character results to avoid `any`
-  results?: Character[];
-  error?: string;
-}
-
-interface Character {
-  id: number;
-  name: string;
-  status: string;
-  species: string;
-  type: string;
-  gender: string;
-  origin: { name: string; url: string };
-  location: { name: string; url: string };
-  image: string;
-  episode: string[];
-  url?: string;
-  created?: string;
-}
-
-function buildCharacterPath(params: {
-  page: number;
-  name: string;
-  status: string;
-  gender: string;
-  species: string;
-}): string {
-  const searchParams = new URLSearchParams();
-  searchParams.set("page", String(params.page));
-  if (params.name) searchParams.set("name", params.name);
-  if (params.status) searchParams.set("status", params.status);
-  if (params.gender) searchParams.set("gender", params.gender);
-  if (params.species) searchParams.set("species", params.species);
-  return `/character/?${searchParams.toString()}`;
-}
-
 export default function Home() {
   const [pageNumber, updatePageNumber] = useState<number>(1);
-  const debouncedPageNumber = useDebouncedValue(pageNumber, 700);
   const [search, setSearch] = useState<string>("");
   const debouncedSearch = useDebouncedValue(search, 400);
   const [status, updateStatus] = useState<string>("");
@@ -69,72 +26,54 @@ export default function Home() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const { info, results } = fetchedData;
 
   useEffect(() => {
     const controller = new AbortController();
 
-    (async function () {
+    async function loadCharacters() {
       setLoading(true);
       setError(null);
 
       try {
-        const path = buildCharacterPath({
-          page: debouncedPageNumber,
-          name: debouncedSearch,
-          status,
-          gender,
-          species,
-        });
-        const data = await fetchApi<CharacterResponse>(path, {
-          signal: controller.signal,
-        });
+        const data = await getCharacters(
+          {
+            page: pageNumber,
+            name: debouncedSearch.trim(),
+            status,
+            gender,
+            species,
+          },
+          controller.signal,
+        );
 
-        if (data.error) {
-          updateFetchedData({ info: { count: 0, pages: 0 }, results: [] });
-        } else {
-          updateFetchedData(data);
-        }
+        updateFetchedData(
+          data.error ? { info: { count: 0, pages: 0 }, results: [] } : data,
+        );
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
 
         if (err instanceof RateLimitError) {
-          setError(err.message);
-          const retryTimer = setTimeout(() => {
-            setRetryCount((count) => count + 1);
-          }, err.retryAfterMs);
-          controller.signal.addEventListener(
-            "abort",
-            () => clearTimeout(retryTimer),
-            {
-              once: true,
-            },
+          const seconds = Math.ceil(getRateLimitCooldownMs() / 1000);
+          setError(
+            `The public API is rate-limiting requests. Please pause for about ${seconds || 1} seconds, then change a filter or page to try again.`,
           );
           return;
         }
 
-        const message =
-          err instanceof Error ? err.message : "Failed to fetch characters";
         console.error("Error fetching data:", err);
-        setError(message);
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch characters",
+        );
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
-    })();
+    }
 
+    void loadCharacters();
     return () => controller.abort();
-  }, [
-    debouncedPageNumber,
-    debouncedSearch,
-    status,
-    gender,
-    species,
-    retryCount,
-  ]);
+  }, [pageNumber, debouncedSearch, status, gender, species]);
 
   const [width, setWidth] = useState(window.innerWidth);
   useEffect(() => {
@@ -144,11 +83,9 @@ export default function Home() {
   }, []);
 
   const pageChange = (data: { selected: number }) => {
-    if (loading || pageNumber !== debouncedPageNumber) return;
+    if (loading) return;
     updatePageNumber(data.selected + 1);
   };
-
-  const paginationBusy = loading || pageNumber !== debouncedPageNumber;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
@@ -206,7 +143,7 @@ export default function Home() {
 
           {info?.pages && info.pages > 1 && (
             <ReactPaginateComponent
-              className={`pagination-container ${paginationBusy ? "pagination-disabled" : ""}`}
+              className={`pagination-container ${loading ? "pagination-disabled" : ""}`}
               nextLabel={<ChevronRight className="w-5 h-5" />}
               previousLabel={<ChevronLeft className="w-5 h-5" />}
               forcePage={pageNumber === 1 ? 0 : pageNumber - 1}

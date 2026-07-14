@@ -1,23 +1,13 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useState,
   type ReactNode,
 } from "react";
 
-export type Theme = "dark" | "light";
+import { ThemeContext, type Theme } from "./themeContextValue";
 
 const STORAGE_KEY = "rick-morty-theme";
-
-interface ThemeContextValue {
-  theme: Theme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 function getInitialTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
@@ -52,12 +42,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       {children}
     </ThemeContext.Provider>
   );
-}
-
-export function useTheme(): ThemeContextValue {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error("useTheme must be used within ThemeProvider");
-  }
-  return context;
 }

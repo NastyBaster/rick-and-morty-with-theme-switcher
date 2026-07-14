@@ -3,6 +3,8 @@ import Card from "../components/Card";
 import InputGroup from "../components/category/InputGroup";
 import { MapPin, Globe, Compass } from "lucide-react";
 import { fetchApi } from "../api/client";
+import { getCharactersByUrls, type Character } from "../api/characters";
+import { isAbortError } from "../api/errors";
 
 interface LocationInfo {
   name: string;
@@ -12,11 +14,8 @@ interface LocationInfo {
 }
 
 export default function Location() {
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locationOptions, setLocationOptions] = useState<
-    { value: number; label: string }[]
-  >([]);
   const [info, setInfo] = useState<LocationInfo>({
     name: "",
     type: "",
@@ -26,43 +25,6 @@ export default function Location() {
   const [number, setNumber] = useState<number>(1);
 
   const { name, type, dimension } = info;
-
-  useEffect(() => {
-    let isMounted = true;
-
-    (async function () {
-      try {
-        const allLocations = [];
-        let page = 1;
-
-        while (true) {
-          const data = await fetchApi<{
-            info?: { next?: string | null };
-            results?: Array<{ id: number; name: string }>;
-          }>(`/location?page=${page}`);
-
-          allLocations.push(...(data.results ?? []));
-          if (!data.info?.next) break;
-          page += 1;
-        }
-
-        if (!isMounted) return;
-
-        setLocationOptions(
-          allLocations.map((item) => ({
-            value: item.id,
-            label: item.name,
-          })),
-        );
-      } catch (err) {
-        console.error("Error fetching location list:", err);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -76,14 +38,13 @@ export default function Location() {
         });
         setInfo(data);
 
-        const residentData = await Promise.all(
-          (data.residents || []).map((url: string) =>
-            fetchApi(url, { signal: controller.signal }),
-          ),
+        const residentData = await getCharactersByUrls(
+          data.residents || [],
+          controller.signal,
         );
         setResults(residentData);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("Error fetching location details:", err);
       } finally {
         if (!controller.signal.aborted) {
@@ -134,7 +95,6 @@ export default function Location() {
               name="Location"
               changeID={setNumber}
               total={126}
-              options={locationOptions}
             />
           </div>
         </div>

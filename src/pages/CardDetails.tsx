@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Heart, Compass, Globe, Info } from "lucide-react";
-import { fetchApi } from "../api/client";
+import { getCharacter } from "../api/characters";
+import { isAbortError } from "../api/errors";
 import ApiImage from "../components/ApiImage";
 
 interface CharacterDetail {
@@ -32,12 +33,10 @@ export default function CardDetails() {
 
     (async function () {
       try {
-        const data = await fetchApi<CharacterDetail>(`/character/${id}`, {
-          signal: controller.signal,
-        });
+        const data = await getCharacter(id, controller.signal);
         updateFetchedData(data);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("Error fetching character details:", err);
       }
     })();

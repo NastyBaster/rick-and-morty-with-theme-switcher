@@ -3,6 +3,8 @@ import Card from "../components/Card";
 import InputGroup from "../components/category/InputGroup";
 import { Tv, Calendar } from "lucide-react";
 import { fetchApi } from "../api/client";
+import { getCharactersByUrls, type Character } from "../api/characters";
+import { isAbortError } from "../api/errors";
 
 interface EpisodeInfo {
   air_date: string;
@@ -12,11 +14,8 @@ interface EpisodeInfo {
 }
 
 export default function Episodes() {
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
-  const [episodeOptions, setEpisodeOptions] = useState<
-    { value: number; label: string }[]
-  >([]);
   const [info, setInfo] = useState<EpisodeInfo>({
     air_date: "",
     episode: "",
@@ -26,43 +25,6 @@ export default function Episodes() {
   const [id, setID] = useState<number>(1);
 
   const { air_date, name } = info;
-
-  useEffect(() => {
-    let isMounted = true;
-
-    (async function () {
-      try {
-        const allEpisodes = [];
-        let page = 1;
-
-        while (true) {
-          const data = await fetchApi<{
-            info?: { next?: string | null };
-            results?: Array<{ id: number; name: string }>;
-          }>(`/episode?page=${page}`);
-
-          allEpisodes.push(...(data.results ?? []));
-          if (!data.info?.next) break;
-          page += 1;
-        }
-
-        if (!isMounted) return;
-
-        setEpisodeOptions(
-          allEpisodes.map((item) => ({
-            value: item.id,
-            label: item.name,
-          })),
-        );
-      } catch (err) {
-        console.error("Error fetching episode list:", err);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -77,14 +39,13 @@ export default function Episodes() {
         );
         setInfo(data);
 
-        const charData = await Promise.all(
-          data.characters.map((url: string) =>
-            fetchApi(url, { signal: controller.signal }),
-          ),
+        const charData = await getCharactersByUrls(
+          data.characters,
+          controller.signal,
         );
         setResults(charData);
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
+        if (isAbortError(err)) return;
         console.error("Error fetching episode details:", err);
       } finally {
         if (!controller.signal.aborted) {
@@ -126,7 +87,6 @@ export default function Episodes() {
               name="Episode"
               changeID={setID}
               total={51}
-              options={episodeOptions}
             />
           </div>
         </div>
